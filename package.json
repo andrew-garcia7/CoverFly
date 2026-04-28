@@ -1,0 +1,43 @@
+{
+  "name": "coverfly",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-ready ride-booking platform (rider, driver, admin) with microservices + DevOps.",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*",
+    "infra/*"
+  ],
+  "packageManager": "npm@11.3.0",
+  "scripts": {
+    "dev": "npx turbo dev",
+    "dev:lite": "concurrently \"npm run dev --workspace=@coverfly/ride-service\" \"npm run dev --workspace=@coverfly/payment-service\" \"npm run dev --workspace=@coverfly/auth-service\" \"npm run dev --workspace=@coverfly/api-gateway\"",
+    "build": "npx turbo build",
+    "lint": "npx turbo lint",
+    "typecheck": "npx turbo typecheck",
+    "format": "prettier -w .",
+    "docker:up": "docker compose -f infra/docker/docker-compose.yml up --build",
+    "docker:down": "docker compose -f infra/docker/docker-compose.yml down -v"
+  },
+  "keywords": [
+    "ride-booking",
+    "microservices",
+    "socket.io",
+    "mongodb",
+    "kubernetes",
+    "prometheus",
+    "grafana"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1",
+    "cors": "^2.8.6",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0"
+  }
+}

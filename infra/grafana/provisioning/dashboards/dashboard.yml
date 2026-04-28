@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: "coverfly"
+    orgId: 1
+    folder: "CoverFly"
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+

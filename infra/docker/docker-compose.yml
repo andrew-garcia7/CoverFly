@@ -1,0 +1,161 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: coverfly-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  api-gateway:
+    build:
+      context: ../../
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      - PORT=4000
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - USER_SERVICE_URL=http://user-service:4002
+      - RIDE_SERVICE_URL=http://ride-service:4002
+      - PAYMENT_SERVICE_URL=http://payment-service:4004
+      - REALTIME_SERVICE_URL=http://realtime-service:4010
+    ports:
+      - "4000:4000"
+    depends_on:
+      - auth-service
+      - user-service
+      - ride-service
+      - payment-service
+      - realtime-service
+
+  auth-service:
+    build:
+      context: ../../
+      dockerfile: services/auth-service/Dockerfile
+    environment:
+      - PORT=4001
+      - MONGODB_URI=mongodb://mongo:27017/coverfly
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173
+      - JWT_ISSUER=coverfly
+      - JWT_AUDIENCE=coverfly-web
+      - JWT_PRIVATE_KEY_PEM=dev-private
+      - JWT_PUBLIC_KEY_PEM=dev-private
+    ports:
+      - "4001:4001"
+    depends_on:
+      - mongo
+
+  user-service:
+    build:
+      context: ../../
+      dockerfile: services/user-service/Dockerfile
+    environment:
+      - PORT=4002
+      - MONGODB_URI=mongodb://mongo:27017/coverfly
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173
+    ports:
+      - "4002:4002"
+    depends_on:
+      - mongo
+
+  ride-service:
+    build:
+      context: ../../
+      dockerfile: services/ride-service/Dockerfile
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/coverfly
+      - PORT=4002
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173
+    ports:
+      - "4002:4002"
+    depends_on:
+      - mongo
+
+  payment-service:
+    build:
+      context: ../../
+      dockerfile: services/payment-service/Dockerfile
+    environment:
+      - PORT=4004
+      - MONGODB_URI=mongodb://mongo:27017/coverfly 
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173
+      - PAYMENTS_PROVIDER=mock
+    ports:
+      - "4004:4004"
+    depends_on:
+      - mongo
+
+  realtime-service:
+    build:
+      context: ../../
+      dockerfile: services/realtime-service/Dockerfile
+    environment:
+      - PORT=4010
+      - MONGODB_URI=mongodb://mongo:27017/coverfly
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173
+    ports:
+      - "4010:4010"
+    depends_on:
+      - mongo
+
+  web:
+    build:
+      context: ../../
+      dockerfile: apps/rider-web/Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:4000
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+  driver:
+    build:
+      context: ../../
+      dockerfile: apps/driver-app/Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:4000
+    ports:
+      - "3001:80"
+    depends_on:
+      - api-gateway
+
+  admin:
+    build:
+      context: ../../
+      dockerfile: apps/admin-panel/Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:4000
+    ports:
+      - "3002:80"
+    depends_on:
+      - api-gateway
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api-gateway
+      - auth-service
+      - user-service
+      - ride-service
+      - payment-service
+      - realtime-service
+
+  grafana:
+    image: grafana/grafana:11.3.2
+    ports:
+      - "3003:3000"
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning
+      - ../grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+
+volumes:
+  mongo_data:
+
